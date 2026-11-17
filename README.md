@@ -3,27 +3,27 @@
 アドレスバーのない小さなウィンドウで表示できる、Windows向け時計アプリです。
 Edge / Chrome 対応。外部ライブラリ・サーバー処理なし。PCのシステム時刻を表示します。
 
-## ダウンロード
+## ブラウザで利用する（推奨）
 
-**[ソース一式をZIPでダウンロード](https://github.com/gakuto-cw21/mini-clock/archive/refs/heads/main.zip)**
-
-1. ZIPをダウンロードし、展開してください。
-2. Edgeなら `open_clock.bat`、Chromeなら `open_clock_chrome.bat` を実行します。
-3. アドレスバーのない独立したウィンドウが開きます。
-4. 時計にマウスを重ねて **最前面** を押すと、時計が常に手前に表示されます。
-
-起動ファイルを使用しない場合は、`index.html` をブラウザで直接開いて時計を表示できます。
-
-## ブラウザだけで利用する場合（GitHub Pages）
-
-GitHub Pagesを有効にすると、ブラウザから直接表示できます。
+GitHub Pagesを有効にすると、ファイルをダウンロードせずに使えます。
 
 1. リポジトリの **Settings → Pages** を開きます。
 2. **Build and deployment → Deploy from a branch** を選びます。
 3. Branch を **main**、Folder を **/(root)** にして **Save** します。
-4. 有効化後は https://gakuto-cw21.github.io/mini-clock/ で開けます。
+4. 公開完了後、https://gakuto-cw21.github.io/mini-clock/ にアクセスします。
+5. Edgeで **… → その他のツール → アプリ → このサイトをアプリとしてインストール** を選ぶと、アドレスバーのない別ウィンドウにできます。
 
-Edgeでは「アプリとしてインストール」すると、アドレスバーなしの別ウィンドウにできます。
+インストールしたサイトは `edge://apps` から開けます。アプリとしてのインストールが利用できない場合は、通常のタブからも時計を表示できます。
+
+## ダウンロードして利用する（オフライン）
+
+**[ソース一式をZIPでダウンロード](https://github.com/gakuto-cw21/mini-clock/archive/refs/heads/main.zip)**
+
+1. ZIPをダウンロードして展開します。
+2. `index.html` をブラウザで開くと時計を表示できます。
+3. アドレスバーのない独立ウィンドウで開く場合は、Edge用 `open_clock.bat` またはChrome用 `open_clock_chrome.bat` を利用できます。
+
+`.bat` は署名されていない起動用スクリプトです。Windowsが発行元に関する警告を表示する場合があります。警告が出た場合は無理に実行せず、ブラウザからの利用をおすすめします。
 
 ## 最前面に固定する（PiP）
 
