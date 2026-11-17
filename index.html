@@ -24,7 +24,10 @@
     button[aria-pressed="false"] { opacity:.65; }
     .light button { border-color:#c4cdda; background:#e4ebf3; color:#233246; }
     .light button:hover,.light button:focus-visible { background:#d3dfec; }
+    .pip-hint { display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; padding:16px; text-align:center; font-size:13px; color:#bfc8d8; gap:8px; }
+    .light .pip-hint { color:#38485c; }
     .noshow { display:none; }
+    [hidden] { display:none !important; }
     @media (max-height:150px) { .eyebrow {display:none} .date{margin:0} main{padding:2px 8px 9px} .controls{bottom:1px} }
     @media (prefers-reduced-motion:reduce) { .controls{transition:none} }
     @media (hover:none) { .controls { opacity:.75; } }
@@ -39,9 +42,14 @@
       <button type="button" id="seconds" title="秒の表示を切り替えます" aria-pressed="true">秒</button>
       <button type="button" id="showDate" title="日付の表示を切り替えます" aria-pressed="true">日付</button>
       <button type="button" id="theme" title="明るさを切り替えます">配色</button>
+      <button type="button" id="topmost" title="最前面に固定します">最前面</button>
       <button type="button" id="copy" title="現在の日時をクリップボードにコピー">コピー</button>
     </div>
   </main>
+  <div class="pip-hint noshow" id="pipHint">
+    <strong>時計を最前面に表示中</strong>
+    <span>このウィンドウを閉じずに最小化してください。</span>
+  </div>
   <script>
     'use strict';
     const timeEl = document.getElementById('time');
@@ -50,6 +58,13 @@
     const dateBtn = document.getElementById('showDate');
     const themeBtn = document.getElementById('theme');
     const copyBtn = document.getElementById('copy');
+    const topmostBtn = document.getElementById('topmost');
+    const main = document.querySelector('main');
+    const pipHint = document.getElementById('pipHint');
+    let pipWindow = null;
+    let pipTick = null;
+    const pipSupported = window.isSecureContext && 'documentPictureInPicture' in window;
+    topmostBtn.hidden = !pipSupported;
     const week = ['日','月','火','水','木','金','土'];
     const pad = n => String(n).padStart(2,'0');
     function getSetting(key, defaultValue) {
@@ -70,6 +85,10 @@
       secondsBtn.setAttribute('aria-pressed',String(showSeconds));
       dateBtn.setAttribute('aria-pressed',String(showDate));
       document.body.classList.toggle('light',!dark);
+      main.ownerDocument.body.classList.toggle('light',!dark);
+      if (pipWindow && !pipWindow.closed) {
+        pipWindow.document.title = `${formattedTime(d)} | ミニ時計`;
+      }
       document.title = `${formattedTime(d)} | ミニ時計`;
     }
     let tickTimer;
@@ -77,13 +96,48 @@
     secondsBtn.addEventListener('click',()=>{ showSeconds=!showSeconds; saveSetting('seconds',showSeconds); paint(); });
     dateBtn.addEventListener('click',()=>{ showDate=!showDate; saveSetting('date',showDate); paint(); });
     themeBtn.addEventListener('click',()=>{ dark=!dark; saveSetting('dark',dark); paint(); });
+    topmostBtn.addEventListener('click',async()=>{
+      if (pipWindow && !pipWindow.closed) {
+        pipWindow.close();
+        return;
+      }
+      if (!pipSupported) return;
+      try {
+        // User gesture is required for requestWindow().
+        const floatingWindow = await window.documentPictureInPicture.requestWindow({width:340,height:175});
+        pipWindow = floatingWindow;
+        for (const style of document.querySelectorAll('style')) {
+          floatingWindow.document.head.append(style.cloneNode(true));
+        }
+        floatingWindow.document.body.append(main);
+        pipHint.classList.remove('noshow');
+        topmostBtn.textContent = '解除';
+        topmostBtn.title = '最前面表示を解除します';
+        pipTick = floatingWindow.setInterval(paint,250);
+        floatingWindow.addEventListener('pagehide',()=>{
+          if (pipTick !== null) floatingWindow.clearInterval(pipTick);
+          pipTick = null;
+          document.body.prepend(main);
+          pipWindow = null;
+          pipHint.classList.add('noshow');
+          topmostBtn.textContent = '最前面';
+          topmostBtn.title = '最前面に固定します';
+          paint();
+        },{once:true});
+        paint();
+      } catch (error) {
+        console.warn('最前面表示を開始できませんでした',error);
+        window.alert('このブラウザでは最前面表示を利用できません。');
+      }
+    });
     copyBtn.addEventListener('click',async()=>{
       const d = new Date();
       const stamp = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-      try { await navigator.clipboard.writeText(stamp); copyBtn.textContent='完了'; }
+      const activeDocument=copyBtn.ownerDocument;
+      try { await activeDocument.defaultView.navigator.clipboard.writeText(stamp); copyBtn.textContent='完了'; }
       catch {
-        const textarea=document.createElement('textarea'); textarea.value=stamp; document.body.appendChild(textarea); textarea.select();
-        try { document.execCommand('copy'); copyBtn.textContent='完了'; } catch { copyBtn.textContent='不可'; }
+        const textarea=activeDocument.createElement('textarea'); textarea.value=stamp; activeDocument.body.appendChild(textarea); textarea.select();
+        try { copyBtn.textContent=activeDocument.execCommand('copy') ? '完了' : '不可'; } catch { copyBtn.textContent='不可'; }
         textarea.remove();
       }
       setTimeout(()=>{copyBtn.textContent='コピー';},900);
